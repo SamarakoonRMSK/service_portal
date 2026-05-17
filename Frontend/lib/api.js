@@ -42,7 +42,7 @@ export async function getMe() {
 }
 
 export async function getJobs(filters = {}) {
-  const params = {};
+  const params = { page: filters.page || 1, limit: filters.limit || 5 };
   if (filters.category && filters.category !== "All") {
     params.category = filters.category;
   }

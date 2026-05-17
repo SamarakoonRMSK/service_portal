@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import FilterBar from "../components/FilterBar";
 import JobCard from "../components/JobCard";
+import Pagination from "../components/Pagination";
 import { getErrorMessage, getJobs } from "../lib/api";
 
 function HomeContent() {
@@ -14,25 +15,49 @@ function HomeContent() {
   const [category, setCategory] = useState("All");
   const [status, setStatus] = useState("All");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [limit] = useState(5);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const fetchJobs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getJobs({ category, status, search });
-      setJobs(data);
-    } catch (err) {
-      setError(getErrorMessage(err));
-      setJobs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [category, status, search]);
+  const fetchJobs = useCallback(
+    async (pageNum = 1) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getJobs({ category, status, search, page: pageNum, limit });
+        setJobs(data.jobs);
+        setPage(data.page);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
+      } catch (err) {
+        setError(getErrorMessage(err));
+        setJobs([]);
+        setTotal(0);
+        setTotalPages(1);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [category, status, search, limit]
+  );
 
   useEffect(() => {
-    fetchJobs();
+    fetchJobs(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function handleSearch() {
+    setPage(1);
+    fetchJobs(1);
+  }
+
+  function handlePageChange(nextPage) {
+    setPage(nextPage);
+    fetchJobs(nextPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   useEffect(() => {
     if (searchParams.get("created") === "true") {
@@ -70,12 +95,14 @@ function HomeContent() {
         onCategoryChange={setCategory}
         onStatusChange={setStatus}
         onSearchChange={setSearch}
-        onSearch={fetchJobs}
+        onSearch={handleSearch}
         loading={loading}
       />
 
       <p className="mt-6 text-sm text-gray-600">
-        {loading ? "Loading..." : `${jobs.length} job${jobs.length === 1 ? "" : "s"} found`}
+        {loading
+          ? "Loading..."
+          : `${total} job${total === 1 ? "" : "s"} found`}
       </p>
 
       {loading ? (
@@ -88,11 +115,21 @@ function HomeContent() {
           </p>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {jobs.map((job) => (
-            <JobCard key={job._id} job={job} />
-          ))}
-        </div>
+        <>
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {jobs.map((job) => (
+              <JobCard key={job._id} job={job} />
+            ))}
+          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            limit={limit}
+            onPageChange={handlePageChange}
+            loading={loading}
+          />
+        </>
       )}
     </div>
   );

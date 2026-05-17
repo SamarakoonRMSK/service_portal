@@ -118,7 +118,7 @@ npm start
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| `GET` | `/api/jobs` | No | List jobs (filters: `category`, `status`, `search`) |
+| `GET` | `/api/jobs` | No | List jobs (filters: `category`, `status`, `search`; pagination: `page`, `limit` default 5) |
 | `GET` | `/api/jobs/:id` | No | Job details |
 | `POST` | `/api/jobs` | Yes | Create a job |
 | `PATCH` | `/api/jobs/:id` | Yes | Update job status |

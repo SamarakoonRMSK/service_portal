@@ -3,6 +3,8 @@ const JobRequest = require("../models/JobRequest");
 const { formatValidationErrors } = require("../utils/validation");
 
 const VALID_STATUSES = ["Open", "In Progress", "Closed"];
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 5;
 
 async function getJobs(req, res, next) {
   try {
@@ -21,11 +23,28 @@ async function getJobs(req, res, next) {
       filter.$or = [{ title: searchRegex }, { description: searchRegex }];
     }
 
-    const jobs = await JobRequest.find(filter)
-      .populate("createdBy", "name email")
-      .sort({ createdAt: -1 });
+    const page = Number(req.query.page) || DEFAULT_PAGE;
+    const limit = Number(req.query.limit) || DEFAULT_LIMIT;
+    const skip = (page - 1) * limit;
 
-    res.status(200).json(jobs);
+    const [jobs, total] = await Promise.all([
+      JobRequest.find(filter)
+        .populate("createdBy", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      JobRequest.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    res.status(200).json({
+      jobs,
+      page,
+      limit,
+      total,
+      totalPages,
+    });
   } catch (error) {
     next(error);
   }
